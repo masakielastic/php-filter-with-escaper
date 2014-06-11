@@ -86,7 +86,9 @@
 #define FILTER_ESCAPE_JAVASCRIPT      0x020d
 #define FILTER_ESCAPE_URL             0x020e
 
-#define FILTER_SANITIZE_LAST          0x020e
+#define FILTER_ESCAPE_ILL_FORMED_BYTES 0x020f
+
+#define FILTER_SANITIZE_LAST          0x020f
 
 #define FILTER_SANITIZE_ALL           0x0200
 

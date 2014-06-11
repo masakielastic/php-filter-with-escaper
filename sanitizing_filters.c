@@ -479,6 +479,38 @@ void php_escape_url(PHP_INPUT_FILTER_PARAM_DECL)
 }
 /* }}} */
 
+/* {{{ php_filter_scrub */
+void php_escape_ill_formed_bytes(PHP_INPUT_FILTER_PARAM_DECL)
+{
+    char* str = Z_STRVAL_P(value);
+    size_t str_size = Z_STRLEN_P(value);
+
+    size_t prev_pos = 0;
+    size_t pos = 0;
+    int status = 0;
+    smart_str buf = {0};
+
+    char *substitute = "\xEF\xBF\xBD";
+    size_t substitute_size = 3;
+
+    while (pos < str_size) {
+        prev_pos = pos;
+        php_next_utf8_char((const unsigned char *) str, str_size, &pos, &status);
+
+        if (status == SUCCESS) {
+            smart_str_appendl(&buf, str + prev_pos, pos - prev_pos);
+        } else {
+            smart_str_appendl(&buf, substitute, substitute_size);
+        }
+    }
+
+    smart_str_0(&buf);
+    str_efree(Z_STRVAL_P(value));
+    ZVAL_STRINGL(value, buf.c, buf.len, 1);
+    smart_str_free(&buf);
+}
+/* }}} */
+
 /* {{{ php_filter_email */
 #define SAFE        "$-_.+"
 #define EXTRA       "!*'(),"
