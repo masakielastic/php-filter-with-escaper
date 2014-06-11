@@ -21,6 +21,7 @@
 #include "php_filter.h"
 #include "filter_private.h"
 #include "ext/standard/php_smart_str.h"
+#include "ext/standard/url.h"
 
 /* {{{ STRUCTS */
 typedef unsigned long filter_map[256];
@@ -461,6 +462,20 @@ void php_escape_javascript(PHP_INPUT_FILTER_PARAM_DECL)
     str_efree(Z_STRVAL_P(value));
     ZVAL_STRINGL(value, buf.c, buf.len, 1);
     smart_str_free(&buf);
+}
+/* }}} */
+
+/* {{{ php_escape_url */
+void php_escape_url(PHP_INPUT_FILTER_PARAM_DECL)
+{
+    char* in_str = Z_STRVAL_P(value);
+    size_t in_str_size = Z_STRLEN_P(value);
+    char* out_str;
+    int out_str_size;
+
+    out_str = php_raw_url_encode(in_str, in_str_size, &out_str_size);
+    str_efree(Z_STRVAL_P(value));
+    ZVAL_STRINGL(value, out_str, out_str_size, 1);
 }
 /* }}} */
 

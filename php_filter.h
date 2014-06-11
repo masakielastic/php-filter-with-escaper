@@ -94,6 +94,7 @@ void php_filter_magic_quotes(PHP_INPUT_FILTER_PARAM_DECL);
 void php_escape_html(PHP_INPUT_FILTER_PARAM_DECL);
 void php_escape_css(PHP_INPUT_FILTER_PARAM_DECL);
 void php_escape_javascript(PHP_INPUT_FILTER_PARAM_DECL);
+void php_escape_url(PHP_INPUT_FILTER_PARAM_DECL);
 
 void php_filter_callback(PHP_INPUT_FILTER_PARAM_DECL);
 
