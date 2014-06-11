@@ -61,7 +61,8 @@ static const filter_list_entry filter_list[] = {
 	{ "number_float",    FILTER_SANITIZE_NUMBER_FLOAT,  php_filter_number_float    },
 	{ "magic_quotes",    FILTER_SANITIZE_MAGIC_QUOTES,  php_filter_magic_quotes    },
 
-    { "escape_html", FILTER_ESCAPE_HTML, php_escape_html },
+  { "escape_html", FILTER_ESCAPE_HTML, php_escape_html },
+  { "escape_css", FILTER_ESCAPE_CSS, php_escape_css },
 
 	{ "callback",        FILTER_CALLBACK,               php_filter_callback        },
 };
@@ -252,7 +253,8 @@ PHP_MINIT_FUNCTION(filter)
 	REGISTER_LONG_CONSTANT("FILTER_SANITIZE_NUMBER_FLOAT", FILTER_SANITIZE_NUMBER_FLOAT, CONST_CS | CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("FILTER_SANITIZE_MAGIC_QUOTES", FILTER_SANITIZE_MAGIC_QUOTES, CONST_CS | CONST_PERSISTENT);
 
-    REGISTER_LONG_CONSTANT("FILTER_ESCAPE_HTML", FILTER_ESCAPE_HTML, CONST_CS | CONST_PERSISTENT);
+  REGISTER_LONG_CONSTANT("FILTER_ESCAPE_HTML", FILTER_ESCAPE_HTML, CONST_CS | CONST_PERSISTENT);
+  REGISTER_LONG_CONSTANT("FILTER_ESCAPE_CSS", FILTER_ESCAPE_CSS, CONST_CS | CONST_PERSISTENT);
 
 	REGISTER_LONG_CONSTANT("FILTER_CALLBACK", FILTER_CALLBACK, CONST_CS | CONST_PERSISTENT);
 
@@ -396,11 +398,11 @@ static void php_zval_filter(zval **value, long filter, long flags, zval *options
 
 	if (
 		options && (Z_TYPE_P(options) == IS_ARRAY || Z_TYPE_P(options) == IS_OBJECT) &&
-		((flags & FILTER_NULL_ON_FAILURE && Z_TYPE_PP(value) == IS_NULL) || 
+		((flags & FILTER_NULL_ON_FAILURE && Z_TYPE_PP(value) == IS_NULL) ||
 		(!(flags & FILTER_NULL_ON_FAILURE) && Z_TYPE_PP(value) == IS_BOOL && Z_LVAL_PP(value) == 0)) &&
 		zend_hash_exists(HASH_OF(options), "default", sizeof("default"))
 	) {
-		zval **tmp; 
+		zval **tmp;
 		if (zend_hash_find(HASH_OF(options), "default", sizeof("default"), (void **)&tmp) == SUCCESS) {
 			MAKE_COPY_ZVAL(tmp, *value);
 		}
@@ -441,7 +443,7 @@ static unsigned int php_sapi_filter(int arg, char *var, char **val, unsigned int
 			break;
 	}
 
-	/* 
+	/*
 	 * According to rfc2965, more specific paths are listed above the less specific ones.
 	 * If we encounter a duplicate cookie name, we should skip it, since it is not possible
 	 * to have the same (plain text) cookie name for the same path and we should not overwrite
@@ -766,7 +768,7 @@ PHP_FUNCTION(filter_input)
 			} else if (Z_TYPE_PP(filter_args) == IS_ARRAY && zend_hash_find(HASH_OF(*filter_args), "flags", sizeof("flags"), (void **)&option) == SUCCESS) {
 				PHP_FILTER_GET_LONG_OPT(option, filter_flags);
 			}
-			if (Z_TYPE_PP(filter_args) == IS_ARRAY && 
+			if (Z_TYPE_PP(filter_args) == IS_ARRAY &&
 				zend_hash_find(HASH_OF(*filter_args), "options", sizeof("options"), (void **)&opt) == SUCCESS &&
 				Z_TYPE_PP(opt) == IS_ARRAY &&
 				zend_hash_find(HASH_OF(*opt), "default", sizeof("default"), (void **)&def) == SUCCESS

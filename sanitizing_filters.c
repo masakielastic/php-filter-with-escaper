@@ -26,6 +26,8 @@
 typedef unsigned long filter_map[256];
 /* }}} */
 
+static const char digits[] = "0123456789abcdef";
+
 /* {{{ HELPER FUNCTIONS */
 static void php_filter_encode_html(zval *value, const unsigned char *chars)
 {
@@ -97,9 +99,9 @@ static void php_filter_encode_url(zval *value, const unsigned char* chars, const
 			*p++ = hexchars[(unsigned char) *s >> 4];
 			*p++ = hexchars[(unsigned char) *s & 15];
 		} else {
-			*p++ = *s;	
+			*p++ = *s;
 		}
-		s++;	
+		s++;
 	}
 	*p = '\0';
 	str_efree(Z_STRVAL_P(value));
@@ -111,7 +113,7 @@ static void php_filter_strip(zval *value, long flags)
 {
 	unsigned char *buf, *str;
 	int   i, c;
-	
+
 	/* Optimization for if no strip flags are set */
 	if (! ((flags & FILTER_FLAG_STRIP_LOW) || (flags & FILTER_FLAG_STRIP_HIGH)) ) {
 		return;
@@ -157,7 +159,7 @@ static void filter_map_apply(zval *value, filter_map *map)
 {
 	unsigned char *buf, *str;
 	int   i, c;
-	
+
 	str = (unsigned char *)Z_STRVAL_P(value);
 	buf = safe_emalloc(1, Z_STRLEN_P(value) + 1, 1);
 	c = 0;
@@ -208,7 +210,7 @@ void php_filter_string(PHP_INPUT_FILTER_PARAM_DECL)
 		if (flags & FILTER_FLAG_EMPTY_STRING_NULL) {
 			ZVAL_NULL(value);
 		} else {
-			ZVAL_EMPTY_STRING(value);			
+			ZVAL_EMPTY_STRING(value);
 		}
 		return;
 	}
@@ -241,8 +243,8 @@ void php_filter_special_chars(PHP_INPUT_FILTER_PARAM_DECL)
 	if (flags & FILTER_FLAG_ENCODE_HIGH) {
 		memset(enc + 127, 1, sizeof(enc) - 127);
 	}
-	
-	php_filter_encode_html(value, enc);	
+
+	php_filter_encode_html(value, enc);
 }
 /* }}} */
 
@@ -252,7 +254,7 @@ void php_filter_full_special_chars(PHP_INPUT_FILTER_PARAM_DECL)
 	char *buf;
 	size_t len;
 	int quotes;
-	
+
 	if (!(flags & FILTER_FLAG_NO_ENCODE_QUOTES)) {
 		quotes = ENT_QUOTES;
 	} else {
@@ -284,7 +286,7 @@ void php_filter_unsafe_raw(PHP_INPUT_FILTER_PARAM_DECL)
 			memset(enc + 127, 1, sizeof(enc) - 127);
 		}
 
-		php_filter_encode_html(value, enc);	
+		php_filter_encode_html(value, enc);
 	} else if (flags & FILTER_FLAG_EMPTY_STRING_NULL && Z_STRLEN_P(value) == 0) {
 		zval_dtor(value);
 		ZVAL_NULL(value);
@@ -295,13 +297,84 @@ void php_filter_unsafe_raw(PHP_INPUT_FILTER_PARAM_DECL)
 void php_escape_html(PHP_INPUT_FILTER_PARAM_DECL)
 {
     char* str = Z_STRVAL_P(value);
-    size_t str_size = Z_STRLEN_P(value); 
+    size_t str_size = Z_STRLEN_P(value);
     char *replaced;
     size_t replaced_size;
     zend_bool double_encode = 1;
 
     replaced = php_escape_html_entities_ex(str, str_size, &replaced_size, 0, ENT_COMPAT | ENT_SUBSTITUTE, "UTF-8", double_encode TSRMLS_CC);
     ZVAL_STRINGL(value, replaced, replaced_size, 1);
+}
+
+/* {{{ php_escape_css */
+void php_escape_css(PHP_INPUT_FILTER_PARAM_DECL)
+{
+    char* str = Z_STRVAL_P(value);
+    size_t str_size = Z_STRLEN_P(value);
+
+    size_t prev_pos = 0;
+    size_t pos = 0;
+    int status = 0;
+
+    unsigned int code_point;
+    unsigned short w1, w2;
+    smart_str buf = {0};
+
+    char *substitute = "\xEF\xBF\xBD";
+    size_t substitute_size = 3;
+
+    while (pos < str_size) {
+
+        code_point = php_next_utf8_char((const unsigned char *) str, str_size, &pos, &status);
+
+        if (status == FAILURE) {
+
+            smart_str_appendl(&buf, "\xEF\xBF\xBD", 3);
+
+        } else {
+
+            if (
+            // [0-9]
+            (0x30 <= code_point && code_point <= 0x39)
+            // [A-Z]
+            | (0x41 <= code_point && code_point <= 0x5A)
+            // [a-z]
+            | (0x61 <= code_point && code_point <= 0x7A)) {
+
+                smart_str_appendc(&buf, str[pos - 1]);
+
+            } else if (code_point < 0x10000) {
+
+                smart_str_appendl(&buf, "\\", 1);
+                smart_str_appendc(&buf, digits[(code_point >> 12) & 0xf]);
+                smart_str_appendc(&buf, digits[(code_point >> 8) & 0xf]);
+                smart_str_appendc(&buf, digits[(code_point >> 4) & 0xf]);
+                smart_str_appendc(&buf, digits[(code_point & 0xf)]);
+
+            } else {
+                code_point -= 0x10000;
+                w1 = (unsigned short) ((code_point >> 10) | 0xd800);
+                w2 = (unsigned short) ((code_point & 0x3ff) | 0xdc00);
+                smart_str_appendl(&buf, "\\", 1);
+                smart_str_appendc(&buf, digits[(w1 >> 12) & 0xf]);
+                smart_str_appendc(&buf, digits[(w1 >> 8) & 0xf]);
+                smart_str_appendc(&buf, digits[(w1 >> 4) & 0xf]);
+                smart_str_appendc(&buf, digits[(w1 & 0xf)]);
+                smart_str_appendl(&buf, "\\", 1);
+                smart_str_appendc(&buf, digits[(w2 >> 12) & 0xf]);
+                smart_str_appendc(&buf, digits[(w2 >> 8) & 0xf]);
+                smart_str_appendc(&buf, digits[(w2 >> 4) & 0xf]);
+                smart_str_appendc(&buf, digits[(w2 & 0xf)]);
+            }
+
+        }
+
+    }
+
+    smart_str_0(&buf);
+    str_efree(Z_STRVAL_P(value));
+    ZVAL_STRINGL(value, buf.c, buf.len, 1);
+    smart_str_free(&buf);
 }
 
 /* {{{ php_filter_email */
@@ -379,7 +452,7 @@ void php_filter_magic_quotes(PHP_INPUT_FILTER_PARAM_DECL)
 {
 	char *buf;
 	int   len;
-	
+
 	/* just call php_addslashes quotes */
 	buf = php_addslashes(Z_STRVAL_P(value), Z_STRLEN_P(value), &len, 0 TSRMLS_CC);
 
