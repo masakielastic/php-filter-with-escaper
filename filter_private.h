@@ -64,7 +64,10 @@
 #define FILTER_VALIDATE_EMAIL         0x0112
 #define FILTER_VALIDATE_IP            0x0113
 #define FILTER_VALIDATE_MAC           0x0114
-#define FILTER_VALIDATE_LAST          0x0114
+
+#define FILTER_VALIDATE_ENCODING      0x0115
+
+#define FILTER_VALIDATE_LAST          0x0115
 
 #define FILTER_VALIDATE_ALL           0x0100
 

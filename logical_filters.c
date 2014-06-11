@@ -135,7 +135,7 @@ static int php_filter_parse_octal(const char *str, unsigned int str_len, long *r
 			return -1;
 		}
 	}
-	
+
 	*ret = (long)ctx_value;
 	return 1;
 }
@@ -404,7 +404,7 @@ error:
 			efree(num);
 			RETURN_VALIDATION_FAILED
 	}
-	efree(num);	
+	efree(num);
 }
 /* }}} */
 
@@ -449,7 +449,7 @@ void php_filter_validate_url(PHP_INPUT_FILTER_PARAM_DECL) /* {{{ */
 {
 	php_url *url;
 	int old_len = Z_STRLEN_P(value);
-	
+
 	php_filter_url(value, flags, option_array, charset TSRMLS_CC);
 
 	if (Z_TYPE_P(value) != IS_STRING || old_len != Z_STRLEN_P(value)) {
@@ -474,7 +474,7 @@ void php_filter_validate_url(PHP_INPUT_FILTER_PARAM_DECL) /* {{{ */
 		s = url->host;
 
 		/* First char of hostname must be alphanumeric */
-		if(!isalnum((int)*(unsigned char *)s)) { 
+		if(!isalnum((int)*(unsigned char *)s)) {
 			goto bad_url;
 		}
 
@@ -487,7 +487,7 @@ void php_filter_validate_url(PHP_INPUT_FILTER_PARAM_DECL) /* {{{ */
 	}
 
 	if (
-		url->scheme == NULL || 
+		url->scheme == NULL ||
 		/* some schemas allow the host to be empty */
 		(url->host == NULL && (strcmp(url->scheme, "mailto") && strcmp(url->scheme, "news") && strcmp(url->scheme, "file"))) ||
 		((flags & FILTER_FLAG_PATH_REQUIRED) && url->path == NULL) || ((flags & FILTER_FLAG_QUERY_REQUIRED) && url->query == NULL)
@@ -585,7 +585,7 @@ static int _php_filter_validate_ipv4(char *str, int str_len, int *ip) /* {{{ */
 			return 0;
 		}
 	}
-	return 0;		
+	return 0;
 }
 /* }}} */
 
@@ -648,7 +648,7 @@ static int _php_filter_validate_ipv6(char *str, int str_len TSRMLS_DC) /* {{{ */
 			} else if ((str - 1) == s) {
 				/* dont allow leading : without another : following */
 				return 0;
-			}				
+			}
 		}
 		n = 0;
 		while ((str < end) &&
@@ -837,6 +837,29 @@ void php_filter_validate_mac(PHP_INPUT_FILTER_PARAM_DECL) /* {{{ */
 			RETURN_VALIDATION_FAILED
 		}
 	}
+}
+/* }}} */
+
+/* {{{ */
+void php_filter_validate_encoding(PHP_INPUT_FILTER_PARAM_DECL)
+{
+    char* str = Z_STRVAL_P(value);
+    size_t str_size = Z_STRLEN_P(value);
+
+    size_t prev_pos = 0;
+    size_t pos = 0;
+    int status = 0;
+
+    while (pos < str_size) {
+        prev_pos = pos;
+        php_next_utf8_char((const unsigned char *) str, str_size, &pos, &status);
+
+        if (status == FAILURE) {
+                RETURN_VALIDATION_FAILED;
+            break;
+        }
+    }
+
 }
 /* }}} */
 
