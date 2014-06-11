@@ -863,6 +863,54 @@ void php_filter_validate_encoding(PHP_INPUT_FILTER_PARAM_DECL)
 }
 /* }}} */
 
+static int php_utf8_length(char *str, size_t str_size)
+{
+    size_t prev_pos = 0;
+    size_t pos = 0;
+    int status = 0;
+    int length = 0;
+
+    while (pos < str_size) {
+        prev_pos = pos;
+        php_next_utf8_char((const unsigned char *) str, str_size, &pos, &status);
+        ++length;
+    }
+
+    return length;
+}
+
+void php_filter_validate_string_length(PHP_INPUT_FILTER_PARAM_DECL)
+{
+    zval **option_val;
+    long   min_range, max_range;
+    int    min_range_set, max_range_set;
+    char* encoding;
+    int encoding_len;
+    int encoding_set;
+
+    char* str = Z_STRVAL_P(value);
+    size_t str_size = Z_STRLEN_P(value);
+    int length;
+
+    FETCH_LONG_OPTION(min_range, "min_range");
+    FETCH_LONG_OPTION(max_range, "max_range");
+    FETCH_STRING_OPTION(encoding, "encoding");
+
+    if (!encoding_set) {
+        encoding = "UTF-8";
+    }
+
+    if (memcmp((void *) encoding, "UTF-8", 5) == 0) {
+        length = php_utf8_length(str, str_size);
+    } else {
+        length = str_size;
+    }
+
+    if (length < min_range || max_range < length) {
+        RETURN_VALIDATION_FAILED;
+    }
+}
+
 /*
  * Local variables:
  * tab-width: 4
