@@ -292,7 +292,17 @@ void php_filter_unsafe_raw(PHP_INPUT_FILTER_PARAM_DECL)
 }
 /* }}} */
 
+void php_escape_html(PHP_INPUT_FILTER_PARAM_DECL)
+{
+    char* str = Z_STRVAL_P(value);
+    size_t str_size = Z_STRLEN_P(value); 
+    char *replaced;
+    size_t replaced_size;
+    zend_bool double_encode = 1;
 
+    replaced = php_escape_html_entities_ex(str, str_size, &replaced_size, 0, ENT_COMPAT | ENT_SUBSTITUTE, "UTF-8", double_encode TSRMLS_CC);
+    ZVAL_STRINGL(value, replaced, replaced_size, 1);
+}
 
 /* {{{ php_filter_email */
 #define SAFE        "$-_.+"
