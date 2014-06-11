@@ -83,8 +83,9 @@
 
 #define FILTER_ESCAPE_HTML            0x020b
 #define FILTER_ESCAPE_CSS             0x020c
+#define FILTER_ESCAPE_JAVASCRIPT      0x020d
 
-#define FILTER_SANITIZE_LAST          0x020c
+#define FILTER_SANITIZE_LAST          0x020e
 
 #define FILTER_SANITIZE_ALL           0x0200
 

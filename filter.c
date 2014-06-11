@@ -63,6 +63,7 @@ static const filter_list_entry filter_list[] = {
 
   { "escape_html", FILTER_ESCAPE_HTML, php_escape_html },
   { "escape_css", FILTER_ESCAPE_CSS, php_escape_css },
+  { "escape_javascript", FILTER_ESCAPE_JAVASCRIPT, php_escape_javascript },
 
 	{ "callback",        FILTER_CALLBACK,               php_filter_callback        },
 };
@@ -255,6 +256,7 @@ PHP_MINIT_FUNCTION(filter)
 
   REGISTER_LONG_CONSTANT("FILTER_ESCAPE_HTML", FILTER_ESCAPE_HTML, CONST_CS | CONST_PERSISTENT);
   REGISTER_LONG_CONSTANT("FILTER_ESCAPE_CSS", FILTER_ESCAPE_CSS, CONST_CS | CONST_PERSISTENT);
+  REGISTER_LONG_CONSTANT("FILTER_ESCAPE_JAVASCRIPT", FILTER_ESCAPE_JAVASCRIPT, CONST_CS | CONST_PERSISTENT);
 
 	REGISTER_LONG_CONSTANT("FILTER_CALLBACK", FILTER_CALLBACK, CONST_CS | CONST_PERSISTENT);
 

@@ -377,6 +377,93 @@ void php_escape_css(PHP_INPUT_FILTER_PARAM_DECL)
     smart_str_free(&buf);
 }
 
+/* {{{ php_escape_javascript */
+void php_escape_javascript(PHP_INPUT_FILTER_PARAM_DECL)
+{
+
+    char* str = Z_STRVAL_P(value);
+    size_t str_size = Z_STRLEN_P(value);
+
+    size_t prev_pos = 0;
+    size_t pos = 0;
+    int status = 0;
+
+    unsigned int code_point;
+    unsigned short w1, w2;
+    smart_str buf = {0};
+
+    char *substitute = "\xEF\xBF\xBD";
+    size_t substitute_size = 3;
+
+    while (pos < str_size) {
+
+        code_point = php_next_utf8_char((const unsigned char *) str, str_size, &pos, &status);
+
+        if (status == FAILURE) {
+
+            smart_str_appendl(&buf, "\xEF\xBF\xBD", 3);
+
+        } else {
+
+            if (
+            // [,]
+            code_point == 0x2C
+            // [.]
+            | code_point == 0x2E
+            // [/]
+            | code_point == 0x2F
+            // [0-9]
+            | (0x30 <= code_point && code_point <= 0x39)
+            // [A-Z]
+            | (0x41 <= code_point && code_point <= 0x5A)
+            // [_]
+            | code_point == 0x5F
+            // [a-z]
+            | (0x61 <= code_point && code_point <= 0x7A)) {
+
+                smart_str_appendc(&buf, str[pos - 1]);
+
+            } else if (code_point < 0x800) {
+
+                smart_str_appendl(&buf, "\\x", 2);
+                smart_str_appendc(&buf, digits[(code_point >> 4) & 0xf]);
+                smart_str_appendc(&buf, digits[(code_point & 0xf)]);
+
+            } else if (code_point < 0x10000) {
+
+                smart_str_appendl(&buf, "\\u", 2);
+                smart_str_appendc(&buf, digits[(code_point >> 12) & 0xf]);
+                smart_str_appendc(&buf, digits[(code_point >> 8) & 0xf]);
+                smart_str_appendc(&buf, digits[(code_point >> 4) & 0xf]);
+                smart_str_appendc(&buf, digits[(code_point & 0xf)]);
+
+            } else {
+                code_point -= 0x10000;
+                w1 = (unsigned short) ((code_point >> 10) | 0xd800);
+                w2 = (unsigned short) ((code_point & 0x3ff) | 0xdc00);
+                smart_str_appendl(&buf, "\\u", 2);
+                smart_str_appendc(&buf, digits[(w1 >> 12) & 0xf]);
+                smart_str_appendc(&buf, digits[(w1 >> 8) & 0xf]);
+                smart_str_appendc(&buf, digits[(w1 >> 4) & 0xf]);
+                smart_str_appendc(&buf, digits[(w1 & 0xf)]);
+                smart_str_appendl(&buf, "\\u", 2);
+                smart_str_appendc(&buf, digits[(w2 >> 12) & 0xf]);
+                smart_str_appendc(&buf, digits[(w2 >> 8) & 0xf]);
+                smart_str_appendc(&buf, digits[(w2 >> 4) & 0xf]);
+                smart_str_appendc(&buf, digits[(w2 & 0xf)]);
+            }
+
+        }
+
+    }
+
+    smart_str_0(&buf);
+    str_efree(Z_STRVAL_P(value));
+    ZVAL_STRINGL(value, buf.c, buf.len, 1);
+    smart_str_free(&buf);
+}
+/* }}} */
+
 /* {{{ php_filter_email */
 #define SAFE        "$-_.+"
 #define EXTRA       "!*'(),"
